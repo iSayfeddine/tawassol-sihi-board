@@ -588,7 +588,7 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="form-field">
-                  <label htmlFor="member-year">Année d&#39;études</label>
+                  <label htmlFor="member-year">Année d&apos;études</label>
                   <input
                     id="member-year"
                     className="form-input"
