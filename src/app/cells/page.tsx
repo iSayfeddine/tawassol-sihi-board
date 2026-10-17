@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Layers3, Users, ArrowLeft, RefreshCw } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -73,9 +73,17 @@ export default function CellsPage() {
 
     const [cellsResult, membersResult, assignmentsResult] =
       await Promise.all([
-        supabase.from("cells").select("id, name, chef_member_id").order("name"),
-        supabase.from("members").select("id, name").order("name"),
-        supabase.from("member_cells").select("cell_id, member_id"),
+        supabase
+          .from("cells")
+          .select("id, name, chef_member_id")
+          .order("name"),
+        supabase
+          .from("members")
+          .select("id, name")
+          .order("name"),
+        supabase
+          .from("member_cells")
+          .select("cell_id, member_id"),
       ]);
 
     if (
@@ -97,7 +105,7 @@ export default function CellsPage() {
     void loadData();
   }, [loadData]);
 
-  async function addCell(event: React.FormEvent<HTMLFormElement>) {
+  async function addCell(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!canManage || !newCellName.trim()) return;
@@ -123,6 +131,7 @@ export default function CellsPage() {
     setNewCellName("");
     setNewChef("");
     setSaving(false);
+
     await loadData();
   }
 
@@ -166,6 +175,10 @@ export default function CellsPage() {
             <Layers3 size={16} />
             Cellules
           </a>
+          <a className="nav-link" href="/bureau">
+            <Users size={16} />
+            Bureau
+          </a>
         </nav>
 
         <div className="sidebar-bottom">
@@ -208,10 +221,14 @@ export default function CellsPage() {
           </div>
 
           {canManage && (
-            <section className="panel" style={{ marginBottom: 20, padding: 18 }}>
+            <section
+              className="panel"
+              style={{ marginBottom: 20, padding: 18 }}
+            >
               <h2 className="panel-title" style={{ marginBottom: 15 }}>
                 Créer une cellule
               </h2>
+
               <form
                 onSubmit={addCell}
                 style={{
@@ -273,10 +290,15 @@ export default function CellsPage() {
           )}
 
           {loading ? (
-            <div className="panel empty-state">Chargement des cellules...</div>
+            <div className="panel empty-state">
+              Chargement des cellules...
+            </div>
           ) : cells.length === 0 ? (
             <div className="panel empty-state">
-              <Layers3 size={27} style={{ margin: "0 auto 12px", opacity: 0.5 }} />
+              <Layers3
+                size={27}
+                style={{ margin: "0 auto 12px", opacity: 0.5 }}
+              />
               <strong>Aucune cellule enregistrée</strong>
               {canManage
                 ? "Créez la première cellule pour commencer."
@@ -318,7 +340,9 @@ export default function CellsPage() {
                                 ))}
                               </div>
                             ) : (
-                              <span className="muted">Aucun membre affecté</span>
+                              <span className="muted">
+                                Aucun membre affecté
+                              </span>
                             )}
                           </td>
                           <td>
@@ -337,9 +361,9 @@ export default function CellsPage() {
           )}
 
           <p className="muted small-text" style={{ marginTop: 15 }}>
-            La gestion des cellules est réservée au Président et au Vice-président
-            chargé des affaires internes. L’affectation des membres sera ajoutée
-            à l’étape suivante.
+            La gestion des cellules est réservée au Président et au
+            Vice-président chargé des affaires internes. L’affectation des
+            membres sera ajoutée à l’étape suivante.
           </p>
         </section>
       </main>
