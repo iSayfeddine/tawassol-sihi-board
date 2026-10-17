@@ -3,7 +3,14 @@
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Layers3, Users, ArrowLeft, RefreshCw } from "lucide-react";
+import {
+  Layers3,
+  Users,
+  ArrowLeft,
+  RefreshCw,
+  UserPlus,
+  X,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 type Cell = {
@@ -35,9 +42,10 @@ export default function CellsPage() {
   const [cells, setCells] = useState<Cell[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [selectedMembers, setSelectedMembers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
+  const [success, setSuccess] = useState("");
   const [newCellName, setNewCellName] = useState("");
   const [newChef, setNewChef] = useState("");
   const [saving, setSaving] = useState(false);
@@ -69,33 +77,21 @@ export default function CellsPage() {
       return;
     }
 
-    setProfile(bureau);
+    setProfile(bureau as Profile);
 
     const [cellsResult, membersResult, assignmentsResult] =
       await Promise.all([
-        supabase
-          .from("cells")
-          .select("id, name, chef_member_id")
-          .order("name"),
-        supabase
-          .from("members")
-          .select("id, name")
-          .order("name"),
-        supabase
-          .from("member_cells")
-          .select("cell_id, member_id"),
+        supabase.from("cells").select("id, name, chef_member_id").order("name"),
+        supabase.from("members").select("id, name").order("name"),
+        supabase.from("member_cells").select("cell_id, member_id"),
       ]);
 
-    if (
-      cellsResult.error ||
-      membersResult.error ||
-      assignmentsResult.error
-    ) {
+    if (cellsResult.error || membersResult.error || assignmentsResult.error) {
       setError("Impossible de charger les cellules. Réessayez.");
     } else {
-      setCells(cellsResult.data ?? []);
-      setMembers(membersResult.data ?? []);
-      setAssignments(assignmentsResult.data ?? []);
+      setCells((cellsResult.data ?? []) as Cell[]);
+      setMembers((membersResult.data ?? []) as Member[]);
+      setAssignments((assignmentsResult.data ?? []) as Assignment[]);
     }
 
     setLoading(false);
@@ -107,11 +103,11 @@ export default function CellsPage() {
 
   async function addCell(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
     if (!canManage || !newCellName.trim()) return;
 
     setSaving(true);
     setError("");
+    setSuccess("");
 
     const { error: insertError } = await supabase.from("cells").insert({
       name: newCellName.trim(),
@@ -130,8 +126,59 @@ export default function CellsPage() {
 
     setNewCellName("");
     setNewChef("");
+    setSuccess("Cellule créée.");
     setSaving(false);
+    await loadData();
+  }
 
+  async function assignMember(cellId: string) {
+    const memberId = selectedMembers[cellId];
+
+    if (!canManage || !memberId) return;
+
+    setSaving(true);
+    setError("");
+    setSuccess("");
+
+    const { error: insertError } = await supabase.from("member_cells").insert({
+      cell_id: cellId,
+      member_id: memberId,
+    });
+
+    if (insertError) {
+      setError(
+        insertError.code === "23505"
+          ? "Ce membre appartient déjà à cette cellule."
+          : "Affectation impossible. Vérifiez vos droits et réessayez."
+      );
+      setSaving(false);
+      return;
+    }
+
+    setSelectedMembers((previous) => ({ ...previous, [cellId]: "" }));
+    setSuccess("Membre affecté à la cellule.");
+    setSaving(false);
+    await loadData();
+  }
+
+  async function removeMember(cellId: string, memberId: string) {
+    if (!canManage) return;
+
+    setError("");
+    setSuccess("");
+
+    const { error: deleteError } = await supabase
+      .from("member_cells")
+      .delete()
+      .eq("cell_id", cellId)
+      .eq("member_id", memberId);
+
+    if (deleteError) {
+      setError("Impossible de retirer ce membre. Vérifiez vos droits.");
+      return;
+    }
+
+    setSuccess("Membre retiré de la cellule.");
     await loadData();
   }
 
@@ -211,7 +258,7 @@ export default function CellsPage() {
               <div className="eyebrow">ORGANISATION INTERNE</div>
               <h1>Cellules</h1>
               <p className="page-description">
-                Les équipes, leurs responsables et leurs membres.
+                Gérez les équipes, leurs responsables et leurs membres.
               </p>
             </div>
             <button className="btn" onClick={() => void loadData()}>
@@ -220,11 +267,20 @@ export default function CellsPage() {
             </button>
           </div>
 
+          {error && (
+            <div className="message message-error" role="alert" style={{ marginBottom: 15 }}>
+              {error}
+            </div>
+          )}
+
+          {success && (
+            <div className="message" role="status" style={{ marginBottom: 15 }}>
+              {success}
+            </div>
+          )}
+
           {canManage && (
-            <section
-              className="panel"
-              style={{ marginBottom: 20, padding: 18 }}
-            >
+            <section className="panel" style={{ marginBottom: 20, padding: 18 }}>
               <h2 className="panel-title" style={{ marginBottom: 15 }}>
                 Créer une cellule
               </h2>
@@ -268,41 +324,24 @@ export default function CellsPage() {
                   </select>
                 </div>
 
-                <button
-                  className="btn btn-primary"
-                  type="submit"
-                  disabled={saving || !newCellName.trim()}
-                >
-                  {saving ? "Création..." : "Créer la cellule"}
+                <button className="btn btn-primary" type="submit" disabled={saving || !newCellName.trim()}>
+                  {saving ? "Enregistrement..." : "Créer la cellule"}
                 </button>
               </form>
             </section>
           )}
 
-          {error && (
-            <div
-              className="message message-error"
-              style={{ marginBottom: 15 }}
-              role="alert"
-            >
-              {error}
-            </div>
-          )}
-
           {loading ? (
-            <div className="panel empty-state">
-              Chargement des cellules...
-            </div>
+            <div className="panel empty-state">Chargement des cellules...</div>
           ) : cells.length === 0 ? (
             <div className="panel empty-state">
-              <Layers3
-                size={27}
-                style={{ margin: "0 auto 12px", opacity: 0.5 }}
-              />
+              <Layers3 size={27} style={{ margin: "0 auto 12px", opacity: 0.5 }} />
               <strong>Aucune cellule enregistrée</strong>
-              {canManage
-                ? "Créez la première cellule pour commencer."
-                : "Les cellules apparaîtront ici une fois créées par les responsables autorisés."}
+              <p>
+                {canManage
+                  ? "Créez la première cellule pour commencer."
+                  : "Les cellules apparaîtront ici une fois créées."}
+              </p>
             </div>
           ) : (
             <section className="panel">
@@ -320,6 +359,10 @@ export default function CellsPage() {
                     {cells.map((cell) => {
                       const cellMembers = getCellMembers(cell.id);
                       const chef = getChef(cell);
+                      const availableMembers = members.filter(
+                        (member) =>
+                          !cellMembers.some((assigned) => assigned.id === member.id)
+                      );
 
                       return (
                         <tr key={cell.id}>
@@ -331,18 +374,66 @@ export default function CellsPage() {
                           </td>
                           <td>{chef?.name ?? "À définir"}</td>
                           <td>
-                            {cellMembers.length ? (
-                              <div className="tag-list">
-                                {cellMembers.map((member) => (
-                                  <span className="tag" key={member.id}>
-                                    {member.name}
-                                  </span>
-                                ))}
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                              {cellMembers.map((member) => (
+                                <span className="tag" key={member.id}>
+                                  {member.name}
+                                  {canManage && (
+                                    <button
+                                      type="button"
+                                      title={`Retirer ${member.name}`}
+                                      aria-label={`Retirer ${member.name} de ${cell.name}`}
+                                      onClick={() => void removeMember(cell.id, member.id)}
+                                      style={{ marginLeft: 5, verticalAlign: "middle" }}
+                                    >
+                                      <X size={12} />
+                                    </button>
+                                  )}
+                                </span>
+                              ))}
+                              {cellMembers.length === 0 && (
+                                <span className="muted">Aucun membre affecté</span>
+                              )}
+                            </div>
+
+                            {canManage && availableMembers.length > 0 && (
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexWrap: "wrap",
+                                  gap: 7,
+                                  marginTop: 10,
+                                }}
+                              >
+                                <select
+                                  className="form-select"
+                                  aria-label={`Choisir un membre pour ${cell.name}`}
+                                  value={selectedMembers[cell.id] ?? ""}
+                                  onChange={(event) =>
+                                    setSelectedMembers((previous) => ({
+                                      ...previous,
+                                      [cell.id]: event.target.value,
+                                    }))
+                                  }
+                                  style={{ maxWidth: 220 }}
+                                >
+                                  <option value="">Ajouter un membre...</option>
+                                  {availableMembers.map((member) => (
+                                    <option key={member.id} value={member.id}>
+                                      {member.name}
+                                    </option>
+                                  ))}
+                                </select>
+                                <button
+                                  className="btn btn-primary"
+                                  type="button"
+                                  disabled={saving || !selectedMembers[cell.id]}
+                                  onClick={() => void assignMember(cell.id)}
+                                >
+                                  <UserPlus size={14} />
+                                  Affecter
+                                </button>
                               </div>
-                            ) : (
-                              <span className="muted">
-                                Aucun membre affecté
-                              </span>
                             )}
                           </td>
                           <td>
@@ -361,9 +452,8 @@ export default function CellsPage() {
           )}
 
           <p className="muted small-text" style={{ marginTop: 15 }}>
-            La gestion des cellules est réservée au Président et au
-            Vice-président chargé des affaires internes. L’affectation des
-            membres sera ajoutée à l’étape suivante.
+            La création des cellules et la gestion des affectations sont réservées
+            au Président et au Vice-président chargé des affaires internes.
           </p>
         </section>
       </main>
