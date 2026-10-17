@@ -1,4 +1,3 @@
-/* eslint-disable react/no-unescaped-entities */
 
 "use client";
 
@@ -57,6 +56,7 @@ export default function DashboardPage() {
   const [paid, setPaid] = useState(false);
 
   const supabase = useMemo(() => createClient(), []);
+
   const canManageMembers =
     profile?.access_role === "president" ||
     profile?.access_role === "vpi";
@@ -547,10 +547,17 @@ export default function DashboardPage() {
             style={{ width: "100%", maxWidth: 520, padding: 22 }}
           >
             <div className="eyebrow">NOUVEAU DOSSIER</div>
-            <h2 id="add-member-title" className="panel-title" style={{ fontSize: 18 }}>
+            <h2
+              id="add-member-title"
+              className="panel-title"
+              style={{ fontSize: 18 }}
+            >
               Ajouter un membre
             </h2>
-            <p className="page-description" style={{ marginTop: 8, marginBottom: 20 }}>
+            <p
+              className="page-description"
+              style={{ marginTop: 8, marginBottom: 20 }}
+            >
               Les champs pourront être complétés plus tard.
             </p>
 
@@ -581,7 +588,7 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="form-field">
-                  <label htmlFor="member-year">Année d'études</label>
+                  <label htmlFor="member-year">Année d&apos;études</label>
                   <input
                     id="member-year"
                     className="form-input"
