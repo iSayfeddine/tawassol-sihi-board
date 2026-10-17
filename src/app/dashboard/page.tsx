@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -55,7 +55,7 @@ export default function DashboardPage() {
   const [phone, setPhone] = useState("");
   const [paid, setPaid] = useState(false);
 
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const canManageMembers =
     profile?.access_role === "president" ||
     profile?.access_role === "vpi";
