@@ -7,20 +7,47 @@ import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+
+  async function redirectAfterLogin(userId: string) {
+    const supabase = createClient();
+
+    const { data: profile, error } = await supabase
+      .from("bureau_profiles")
+      .select("must_change_password")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (error || !profile) {
+      await supabase.auth.signOut();
+      setMessage(
+        "Compte du bureau non configuré. Contactez le président ou le VPI."
+      );
+      setLoading(false);
+      return;
+    }
+
+    if (profile.must_change_password) {
+      router.replace("/change-password");
+    } else {
+      router.replace("/dashboard");
+    }
+
+    router.refresh();
+  }
 
   useEffect(() => {
     const supabase = createClient();
 
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
-        router.replace("/dashboard");
+        redirectAfterLogin(data.session.user.id);
       }
     });
-  }, [router]);
+  }, []);
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -29,19 +56,20 @@ export default function LoginPage() {
 
     const supabase = createClient();
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
+    const normalizedUsername = username.trim().toLowerCase();
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: `${normalizedUsername}@tawassol-sihi.example.com`,
       password,
     });
 
-    if (error) {
-      setMessage("Connexion impossible. Vérifiez vos identifiants.");
+    if (error || !data.user) {
+      setMessage("Connexion impossible. Vérifiez votre nom et mot de passe.");
       setLoading(false);
       return;
     }
 
-    router.push("/dashboard");
-    router.refresh();
+    await redirectAfterLogin(data.user.id);
   }
 
   return (
@@ -64,15 +92,15 @@ export default function LoginPage() {
 
         <form onSubmit={handleLogin}>
           <div className="form-field">
-            <label htmlFor="email">Adresse e-mail</label>
+            <label htmlFor="username">Nom d'utilisateur</label>
             <input
               className="form-input"
-              id="email"
-              type="email"
+              id="username"
+              type="text"
               autoComplete="username"
-              placeholder="votre@email.com"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              placeholder="Ex. Linah"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
               required
             />
           </div>
