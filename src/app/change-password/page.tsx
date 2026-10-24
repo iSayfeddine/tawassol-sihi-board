@@ -79,7 +79,7 @@ export default function ChangePasswordPage() {
         <h1>Choisissez votre mot de passe.</h1>
         <p className="page-description">
           Pour sécuriser votre compte, remplacez votre mot de passe temporaire
-          par un mot de passe personnel d'au moins 8 caractères.
+          par un mot de passe personnel d&apos;au moins 8 caractères.
         </p>
 
         <form onSubmit={handleSubmit}>
