@@ -78,7 +78,7 @@ export default function LoginPage() {
         <div className="brand">
           <div className="brand-mark">
             <img
-              src="/tawassollogo.png"
+              src="/tawassol-logo.png"
               alt="Tawassol Sihi logo"
               style={{
                 width: "100%",
