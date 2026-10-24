@@ -76,7 +76,17 @@ export default function LoginPage() {
     <main className="login-shell">
       <section className="login-panel">
         <div className="brand">
-          <div className="brand-mark">TS</div>
+          <div className="brand-mark">
+            <img
+              src="/tawassollogo.png"
+              alt="Tawassol Sihi logo"
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "contain",
+              }}
+            />
+          </div>
           <div>
             <div className="brand-name">Tawassol Sihi</div>
             <div className="brand-subtitle">Bureau · Espace privé</div>
