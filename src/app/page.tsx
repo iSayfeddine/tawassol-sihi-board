@@ -102,7 +102,7 @@ export default function LoginPage() {
 
         <form onSubmit={handleLogin}>
           <div className="form-field">
-            <label htmlFor="username">Nom d'utilisateur</label>
+            <label htmlFor="username">Nom d&apos;utilisateur</label>
             <input
               className="form-input"
               id="username"
